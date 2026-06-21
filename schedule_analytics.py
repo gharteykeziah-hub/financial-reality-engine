@@ -37,7 +37,9 @@ def _shift_hours(event) -> float:
 
     start = _mins(event.start_time)
     end   = _mins(event.end_time)
-    if end <= start:
+    if end == start:
+        return 0.0
+    if end < start:
         end += 1440          # overnight
     return round((end - start) / 60, 4)
 

@@ -1131,3 +1131,105 @@ class TestStress:
         events = [_make_event(shift_date="") for _ in range(20)]
         totals = sa.daily_totals(events)
         assert totals == {}   # all excluded — no crash
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  19. SHIFT OPTIMIZER (knapsack-style constrained selection)
+# ═════════════════════════════════════════════════════════════════════════════
+
+import optimizer as opt
+
+
+class TestShiftOptimizer:
+
+    def test_empty_candidates_returns_empty_result(self):
+        result = opt.optimize_shift_selection([], max_hours=20)
+        assert result.selected == []
+        assert result.total_income == 0.0
+
+    def test_zero_or_negative_budget_returns_empty_result(self):
+        cands = [opt.ShiftCandidate("a", "A", hours=5, hourly_rate=10)]
+        assert opt.optimize_shift_selection(cands, max_hours=0).selected == []
+        assert opt.optimize_shift_selection(cands, max_hours=-5).selected == []
+
+    def test_single_candidate_within_budget_is_selected(self):
+        cands  = [opt.ShiftCandidate("a", "A", hours=5, hourly_rate=10)]
+        result = opt.optimize_shift_selection(cands, max_hours=10)
+        assert [c.id for c in result.selected] == ["a"]
+        assert result.total_income == 50.0
+
+    def test_single_candidate_exceeding_budget_is_excluded(self):
+        cands  = [opt.ShiftCandidate("a", "A", hours=15, hourly_rate=10)]
+        result = opt.optimize_shift_selection(cands, max_hours=10)
+        assert result.selected == []
+        assert result.total_income == 0.0
+
+    def test_beats_naive_greedy_by_rate(self):
+        """
+        Knapsack DP must find the true optimum even when the
+        highest-$/hr single shift is NOT part of the best combination —
+        the scenario where greedy-by-rate selection fails.
+        """
+        candidates = [
+            opt.ShiftCandidate("x", "Job X", hours=9, hourly_rate=20),  # $180, highest rate
+            opt.ShiftCandidate("y", "Job Y", hours=5, hourly_rate=19),  # $95
+            opt.ShiftCandidate("z", "Job Z", hours=5, hourly_rate=19),  # $95
+        ]
+        result = opt.optimize_shift_selection(candidates, max_hours=10)
+        greedy_best_single = max(c.income for c in candidates if c.hours <= 10)
+
+        assert sorted(c.id for c in result.selected) == ["y", "z"]
+        assert result.total_income == 190.0
+        assert result.total_income > greedy_best_single
+
+    def test_all_candidates_fit_selects_everything(self):
+        cands = [
+            opt.ShiftCandidate("a", "A", hours=4, hourly_rate=12),
+            opt.ShiftCandidate("b", "B", hours=4, hourly_rate=15),
+        ]
+        result = opt.optimize_shift_selection(cands, max_hours=20)
+        assert len(result.selected) == 2
+        assert result.total_hours == 8.0
+        assert result.hours_unused == 12.0
+
+    def test_effective_rate_is_blended_average(self):
+        cands  = [
+            opt.ShiftCandidate("a", "A", hours=2, hourly_rate=10),  # $20
+            opt.ShiftCandidate("b", "B", hours=2, hourly_rate=20),  # $40
+        ]
+        result = opt.optimize_shift_selection(cands, max_hours=10)
+        assert result.total_income == 60.0
+        assert result.effective_rate == 15.0   # ($20+$40) / 4h
+
+    def test_candidates_from_events_skips_non_work_and_zero_rate(self):
+        events = [
+            _make_event(title="Study", category="Study", rate=0.0),
+            _make_event(title="Job A", category="Work",  rate=0.0),
+            _make_event(title="Job B", category="Work",  rate=15.0,
+                        start="09:00", end="13:00"),
+        ]
+        cands = opt.candidates_from_events(events)
+        assert len(cands) == 1
+        assert cands[0].job_name == "Job B"
+        assert cands[0].hours == 4.0
+
+    def test_candidates_from_events_handles_overnight_shift(self):
+        events = [_make_event(title="Night Shift", category="Work",
+                               rate=15.0, start="22:00", end="06:00")]
+        cands = opt.candidates_from_events(events)
+        assert cands[0].hours == 8.0
+
+    def test_end_to_end_with_real_schedule_events(self):
+        """Optimizer should work directly on ScheduleEvent objects via the adapter."""
+        events = [
+            _make_event(title="Job A", category="Work", rate=20.0,
+                         start="08:00", end="17:00"),   # 9h, $180
+            _make_event(title="Job B", category="Work", rate=19.0,
+                         start="08:00", end="13:00"),   # 5h, $95
+            _make_event(title="Job C", category="Work", rate=19.0,
+                         start="13:00", end="18:00"),   # 5h, $95
+        ]
+        cands  = opt.candidates_from_events(events)
+        result = opt.optimize_shift_selection(cands, max_hours=10)
+        assert result.total_income == 190.0
+        assert {c.job_name for c in result.selected} == {"Job B", "Job C"}

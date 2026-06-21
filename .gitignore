@@ -51,3 +51,7 @@ build/
 # ── Generated reports (personal exports, not source code) ────────────────────
 *.pdf
 FRE_Progress_Report.docx
+
+# ── Personal documents (not project source — never push these) ───────────────
+Keziah_Ghartey_Resume.docx
+*Resume*.docx

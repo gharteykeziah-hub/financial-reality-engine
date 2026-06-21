@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Financial Reality Engine</title>
+<style>
+  :root { --accent: #2ecc71; --bg: #0c1410; --card: #131d17; --border: #233028; --text: #eaf3ed; --muted: #8aa294; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Inter", Arial, sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--accent); color: #06150c; padding: 22px 28px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: .8; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px; display: grid; gap: 18px; grid-template-columns: 1fr 1fr; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+  .stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row span:last-child { font-weight: 600; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); background: #0c1410; color: var(--text); font-size: 14px; }
+  button { margin-top: 12px; padding: 9px 16px; border-radius: 6px; border: none; background: var(--accent); color: #06150c; font-weight: 700; cursor: pointer; font-size: 13px; }
+  button:hover { opacity: .9; }
+  pre { background: #0c1410; border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 12px; white-space: pre-wrap; max-height: 220px; overflow: auto; }
+  .full { grid-column: 1 / -1; }
+  .muted { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Financial Reality Engine</h1>
+  <p>Schedule-driven financial simulation, served over HTTP. Same engine as the desktop app.</p>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Financial Snapshot</h2>
+    <div id="state-summary" class="muted">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h2>Shift Optimizer</h2>
+    <p class="muted">0/1 knapsack DP over your scheduled Work shifts — not greedy sorting.</p>
+    <label for="max-hours">Max hours available</label>
+    <input id="max-hours" type="number" value="20" min="0" step="0.5">
+    <button onclick="runOptimizer()">Optimize</button>
+    <pre id="optimizer-output">—</pre>
+  </div>
+
+  <div class="card">
+    <h2>Monte Carlo Simulation</h2>
+    <p class="muted">NumPy-vectorized — 500 simulated futures by default.</p>
+    <label for="mc-weeks">Weeks ahead</label>
+    <input id="mc-weeks" type="number" value="12" min="1" max="520">
+    <label for="mc-runs">Number of runs</label>
+    <input id="mc-runs" type="number" value="500" min="1" max="10000">
+    <button onclick="runMonteCarlo()">Run Simulation</button>
+    <pre id="mc-output">—</pre>
+  </div>
+
+  <div class="card">
+    <h2>Income by Job</h2>
+    <pre id="income-output">Loading…</pre>
+  </div>
+
+</main>
+
+<script>
+async function fetchJSON(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+async function loadStateSummary() {
+  try {
+    const s = await fetchJSON("/api/state");
+    const el = document.getElementById("state-summary");
+    el.innerHTML = `
+      <div class="stat-row"><span>Balance</span><span>$${s.balance.toFixed(2)}</span></div>
+      <div class="stat-row"><span>Weekly Income</span><span>$${s.weekly_income.toFixed(2)}</span></div>
+      <div class="stat-row"><span>Weekly Expenses</span><span>$${s.weekly_expenses.toFixed(2)}</span></div>
+      <div class="stat-row"><span>Net Weekly Flow</span><span>$${s.net_weekly_flow.toFixed(2)}</span></div>
+      <div class="stat-row"><span>Savings Rate</span><span>${(s.savings_rate * 100).toFixed(1)}%</span></div>
+      <div class="stat-row"><span>Risk Score</span><span>${s.risk_score}/100</span></div>
+      <div class="stat-row"><span>Health Score</span><span>${s.health_score}/100</span></div>
+    `;
+  } catch (e) {
+    document.getElementById("state-summary").textContent = "Error: " + e.message;
+  }
+}
+
+async function loadIncomeByJob() {
+  try {
+    const data = await fetchJSON("/api/analytics/income");
+    document.getElementById("income-output").textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    document.getElementById("income-output").textContent = "Error: " + e.message;
+  }
+}
+
+async function runOptimizer() {
+  const maxHours = parseFloat(document.getElementById("max-hours").value);
+  const out = document.getElementById("optimizer-output");
+  out.textContent = "Running…";
+  try {
+    const result = await fetchJSON("/api/optimize/shifts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ max_hours: maxHours }),
+    });
+    out.textContent = JSON.stringify(result, null, 2);
+  } catch (e) {
+    out.textContent = "Error: " + e.message;
+  }
+}
+
+async function runMonteCarlo() {
+  const weeks = parseInt(document.getElementById("mc-weeks").value, 10);
+  const n = parseInt(document.getElementById("mc-runs").value, 10);
+  const out = document.getElementById("mc-output");
+  out.textContent = "Running…";
+  try {
+    const result = await fetchJSON("/api/simulate/monte-carlo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weeks, n }),
+    });
+    out.textContent = JSON.stringify(result, null, 2);
+  } catch (e) {
+    out.textContent = "Error: " + e.message;
+  }
+}
+
+loadStateSummary();
+loadIncomeByJob();
+</script>
+
+</body>
+</html>

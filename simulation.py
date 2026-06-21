@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import random
 import logging
+import numpy as np
 import activity_log
 from config import MONTE_CARLO_RUNS
 
@@ -33,7 +36,12 @@ logger = logging.getLogger(__name__)
 # income and expenses continue. The result is a week-by-week
 # picture of the balance.
 # ------------------------------------------------------------
-def simulate_whatif(state, description, dollar_change, weeks):
+def simulate_whatif(
+    state,
+    description: str,
+    dollar_change: float,
+    weeks: int,
+) -> dict:
     """
     Simulates a user-defined event and its effect over N weeks.
 
@@ -80,7 +88,7 @@ def simulate_whatif(state, description, dollar_change, weeks):
     }
 
 
-def _whatif_summary(dollar_change, weekly_flow):
+def _whatif_summary(dollar_change: float, weekly_flow: float) -> str:
     """Returns a plain-English sentence about recovery or gain."""
     if dollar_change < 0:
         if weekly_flow > 0:
@@ -129,8 +137,15 @@ _RANDOM_EVENTS = [
 ]
 
 
-def _roll_random_events():
-    """Rolls the dice on every background event for one week."""
+def _roll_random_events() -> float:
+    """
+    Rolls the dice on every background event for one week.
+
+    Kept as a pure-Python reference implementation (used by tests and
+    anything that wants a single week's draw); run_monte_carlo() itself
+    uses the vectorized NumPy version below for the full N-run / N-week
+    simulation, since that loop is the actual performance-sensitive path.
+    """
     total = 0.0
     for event in _RANDOM_EVENTS:
         if random.random() < event["probability"]:
@@ -138,10 +153,48 @@ def _roll_random_events():
     return round(total, 2)
 
 
-def run_monte_carlo(state, weeks, n=MONTE_CARLO_RUNS):
+# Event parameters hoisted into NumPy arrays once, at import time, so
+# run_monte_carlo() never rebuilds them per call.
+_EVENT_PROB = np.array([e["probability"] for e in _RANDOM_EVENTS])
+_EVENT_MIN  = np.array([e["min"]         for e in _RANDOM_EVENTS], dtype=float)
+_EVENT_MAX  = np.array([e["max"]         for e in _RANDOM_EVENTS], dtype=float)
+
+
+def _roll_random_events_vectorized(n: int, weeks: int) -> np.ndarray:
+    """
+    Vectorized equivalent of calling _roll_random_events() once per
+    (run, week) pair — but drawn for all n*weeks weeks at once via
+    NumPy broadcasting instead of a Python for-loop.
+
+    Returns an (n, weeks) array — weekly_totals[i, w] is the net dollar
+    effect of background life events in run i, week w.
+    """
+    num_events = len(_RANDOM_EVENTS)
+    shape = (n, weeks, num_events)
+
+    # Which events "hit" this (run, week, event) — same Bernoulli draw
+    # _roll_random_events() does, just for every run/week simultaneously.
+    hits = np.random.random(shape) < _EVENT_PROB
+
+    # Magnitude for every event slot, regardless of whether it hit —
+    # cheaper than drawing only for hits, and statistically identical
+    # since we mask non-hits to 0 right after.
+    magnitudes = np.random.uniform(_EVENT_MIN, _EVENT_MAX, size=shape)
+
+    return np.sum(hits * magnitudes, axis=2)  # (n, weeks) -> sum over events
+
+
+def run_monte_carlo(state, weeks: int, n: int = MONTE_CARLO_RUNS) -> dict:
     """
     Runs N simulations of the user's financial life over N weeks.
     Each simulation has different random events each week.
+
+    Vectorized with NumPy: all n runs and all `weeks` weeks of random
+    life events are drawn in one batch (see _roll_random_events_vectorized)
+    instead of a nested Python for-loop. Same statistical model as the
+    original implementation — every event still rolls independently per
+    week with the same probability and dollar range — just computed with
+    array operations instead of n*weeks individual Python-level dice rolls.
 
     Returns:
         average             — most likely ending balance
@@ -153,16 +206,14 @@ def run_monte_carlo(state, weeks, n=MONTE_CARLO_RUNS):
         n                   — number of simulations run
         weeks               — time horizon used
     """
-    weekly_flow      = state.net_weekly_flow()
-    ending_balances  = []
+    weekly_flow     = state.net_weekly_flow()
+    initial_balance = state.current_balance()
 
-    for _ in range(n):
-        balance = state.current_balance()
-        for _ in range(weeks):
-            balance += weekly_flow + _roll_random_events()
-        ending_balances.append(round(balance, 2))
-
-    ending_balances.sort()
+    weekly_event_totals = _roll_random_events_vectorized(n, weeks)               # (n, weeks)
+    total_change        = weekly_flow * weeks + weekly_event_totals.sum(axis=1)  # (n,)
+    ending_balances_arr = np.round(initial_balance + total_change, 2)
+    ending_balances_arr.sort()
+    ending_balances = ending_balances_arr.tolist()
 
     average       = round(sum(ending_balances) / n, 2)
     best_case     = ending_balances[-1]

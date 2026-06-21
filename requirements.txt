@@ -7,4 +7,5 @@
 matplotlib>=3.9.0
 reportlab>=4.0.0
 schedule>=1.2.0
+numpy>=1.26.0   # vectorized Monte Carlo simulation
 pytest>=8.0.0   # only needed to run the test suite

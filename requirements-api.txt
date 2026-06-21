@@ -1,0 +1,15 @@
+# Financial Reality Engine — API deployment dependencies
+#
+# This is a SEPARATE file from requirements.txt because the desktop app
+# needs tkinter (stdlib, not pip-installable) and the `schedule` package,
+# neither of which the API service uses or needs. Cloud hosts (Render,
+# Fly.io, Railway, etc.) install from THIS file, not requirements.txt.
+#
+# Install with: pip install -r requirements-api.txt
+
+matplotlib>=3.9.0
+reportlab>=4.0.0
+numpy>=1.26.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.6.0
