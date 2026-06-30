@@ -496,61 +496,28 @@ class Engine:
         """
         Find all unscheduled gaps in a single day, within the active window.
 
-        Overnight shifts are handled by splitting them at midnight:
-          - The portion before midnight is counted on the shift's day.
-          - The portion after midnight (next day) is ignored here; it will
-            appear as a busy block when that next day is processed IF the
-            user also adds it to the next day's shift list.
+        Overnight shifts are clipped at midnight before the gap algorithm runs:
+          - The portion before midnight counts toward this day.
+          - The portion after midnight is ignored here (belongs to next day).
 
-        Steps:
-          1. Convert shifts to (start_min, end_min), clamped to window.
-             Overnight shifts are clipped at 1440 (midnight).
-          2. Merge overlapping intervals.
-          3. Find gaps between them.
+        Delegates to time_engine._free_gaps — the single source of truth for
+        the gap-finding algorithm.
         """
-        start_min = _to_min(day_start)
-        end_min   = _to_min(day_end)
-        midnight  = 1440
+        from time_engine import _free_gaps   # single source of truth
 
-        raw = []
+        midnight = 1440
+        busy: list[tuple[int, int]] = []
         for s in shifts_for_day:
             s_m = _to_min(s.start_time)
-            # Overnight: end wraps past midnight — clip to midnight for this day
             e_m = s_m + _duration_min(s.start_time, s.end_time)
-            e_m = min(e_m, midnight)   # never extend past midnight for one day
-            # Clamp both ends to the active window
-            s_m = max(s_m, start_min)
-            e_m = min(e_m, end_min)
-            if s_m < e_m:
-                raw.append((s_m, e_m))
-        raw.sort()
+            e_m = min(e_m, midnight)   # clip overnight shifts at midnight
+            busy.append((s_m, e_m))
 
-        # Merge overlapping intervals
-        merged: list[tuple[int, int]] = []
-        for s, e in raw:
-            if merged and s <= merged[-1][1]:
-                merged[-1] = (merged[-1][0], max(merged[-1][1], e))
-            else:
-                merged.append((s, e))
-
-        # Find gaps
-        free: list[FreeBlock] = []
-        cursor = start_min
-        for s, e in merged:
-            if cursor < s:
-                free.append(FreeBlock(
-                    day=day,
-                    start=_from_min(cursor),
-                    end=_from_min(s),
-                ))
-            cursor = max(cursor, e)
-        if cursor < end_min:
-            free.append(FreeBlock(
-                day=day,
-                start=_from_min(cursor),
-                end=_from_min(end_min),
-            ))
-        return free
+        gaps = _free_gaps(busy, _to_min(day_start), _to_min(day_end))
+        return [
+            FreeBlock(day=day, start=_from_min(s), end=_from_min(e))
+            for s, e in gaps
+        ]
 
     @staticmethod
     def opportunity_analysis(

@@ -1,7 +1,41 @@
 """
 time_engine.py — Scheduling analysis algorithms for the Time & Income Planner.
 
-All functions operate on lists of ScheduleEvent objects. No tkinter code here.
+All functions operate on lists of ScheduleEvent objects.  No GUI or database
+code lives here — this module is pure logic so it can be tested in isolation.
+
+Public API
+──────────
+    get_free_blocks(events, day_start, day_end)
+        Find all unscheduled time gaps within a day window for a single day's
+        events.  Returns a list of {"start", "end", "duration_hours"} dicts.
+
+    largest_free_block(events, day_start, day_end)
+        Convenience wrapper — returns just the single longest free block for
+        the day, or None if the day is fully booked.
+
+    weekly_availability(all_events, day_start, day_end)
+        Aggregate free vs. scheduled hours across the whole week.
+        Returns {"scheduled_hours", "free_hours", "availability_pct",
+                 "total_window_hours"}.
+
+    detect_conflicts(new_event, existing_events)
+        Return any existing events whose time range overlaps new_event on the
+        same day.  Returns an empty list when there are no conflicts.
+
+    weekly_income_summary(all_events)
+        Sum earnings across all Work-category events.
+        Returns {"total_work_hours", "total_income", "by_job"}.
+
+    opportunity_cost(free_block, jobs_with_rates)
+        For a single free block and a list of (job_name, hourly_rate) pairs,
+        compute potential earnings if each job filled that block.
+        Returns a list sorted by potential income, highest first.
+
+Dependencies
+────────────
+    schedule_event — ScheduleEvent dataclass, DAYS constant, and the
+                     to_minutes / from_minutes / fmt_time time helpers.
 """
 from __future__ import annotations
 
@@ -9,6 +43,54 @@ from schedule_event import ScheduleEvent, DAYS, to_minutes, from_minutes, fmt_ti
 
 
 # ── Free time analysis ────────────────────────────────────────────────────────
+
+def _free_gaps(
+    busy: list[tuple[int, int]],
+    start_min: int,
+    end_min: int,
+) -> list[tuple[int, int]]:
+    """
+    Core gap-finding algorithm — single source of truth for free-time logic.
+
+    Parameters
+    ----------
+    busy      : raw (start, end) busy intervals in minutes-since-midnight.
+                Callers handle domain-specific pre-processing (e.g. clipping
+                overnight shifts at midnight) before passing here.
+    start_min : active window start in minutes-since-midnight
+    end_min   : active window end   in minutes-since-midnight
+
+    Returns a sorted list of (start, end) free-gap tuples, clamped to the
+    active window, with overlapping busy intervals merged before gap-finding.
+    """
+    # Clamp each interval to the active window and drop empties
+    clamped: list[tuple[int, int]] = []
+    for s, e in busy:
+        s = max(s, start_min)
+        e = min(e, end_min)
+        if s < e:
+            clamped.append((s, e))
+    clamped.sort()
+
+    # Merge overlapping intervals
+    merged: list[tuple[int, int]] = []
+    for s, e in clamped:
+        if merged and s <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+        else:
+            merged.append((s, e))
+
+    # Collect gaps
+    gaps: list[tuple[int, int]] = []
+    cursor = start_min
+    for s, e in merged:
+        if cursor < s:
+            gaps.append((cursor, s))
+        cursor = max(cursor, e)
+    if cursor < end_min:
+        gaps.append((cursor, end_min))
+    return gaps
+
 
 def get_free_blocks(
     events: list[ScheduleEvent],
@@ -28,47 +110,16 @@ def get_free_blocks(
         { "start": "HH:MM", "end": "HH:MM", "duration_hours": float }
     sorted by start time.
     """
-    start_min = to_minutes(day_start)
-    end_min   = to_minutes(day_end)
-
-    # Collect and sort occupied intervals
-    occupied = sorted(
-        [(to_minutes(e.start_time), to_minutes(e.end_time)) for e in events],
-        key=lambda x: x[0],
-    )
-
-    # Merge overlapping occupied blocks
-    merged: list[tuple[int, int]] = []
-    for s, e in occupied:
-        s = max(s, start_min)
-        e = min(e, end_min)
-        if s >= e:
-            continue
-        if merged and s <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
-        else:
-            merged.append((s, e))
-
-    # Gaps between occupied blocks
-    free: list[dict] = []
-    cursor = start_min
-    for s, e in merged:
-        if cursor < s:
-            free.append({
-                "start":          from_minutes(cursor),
-                "end":            from_minutes(s),
-                "duration_hours": (s - cursor) / 60,
-            })
-        cursor = max(cursor, e)
-
-    if cursor < end_min:
-        free.append({
-            "start":          from_minutes(cursor),
-            "end":            from_minutes(end_min),
-            "duration_hours": (end_min - cursor) / 60,
-        })
-
-    return free
+    busy = [(to_minutes(e.start_time), to_minutes(e.end_time)) for e in events]
+    gaps = _free_gaps(busy, to_minutes(day_start), to_minutes(day_end))
+    return [
+        {
+            "start":          from_minutes(s),
+            "end":            from_minutes(e),
+            "duration_hours": (e - s) / 60,
+        }
+        for s, e in gaps
+    ]
 
 
 def largest_free_block(
