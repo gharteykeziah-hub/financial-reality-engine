@@ -4,7 +4,7 @@ schedule_event.py — Event data model for the Time & Income Planner.
 An event represents any time block: a work shift, class, study session,
 meeting, personal appointment, etc.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]

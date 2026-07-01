@@ -16,7 +16,6 @@ from financial_state import FinancialState
 from scenario_engine import ScenarioEngine
 from insight_engine import InsightEngine
 from config import APP_NAME, APP_VERSION
-from utils import canon_name
 import schedule_service
 
 logger = logging.getLogger(__name__)

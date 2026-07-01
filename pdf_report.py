@@ -2,7 +2,6 @@
 pdf_report.py — Generates a ShiftIQ PDF report using reportlab.
 """
 
-import os
 import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors

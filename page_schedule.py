@@ -782,7 +782,6 @@ class SchedulePage(tk.Frame):
 
         # Opportunity cost: collect work job rates from ShiftIQ jobs
         def _work_rates() -> list[tuple[str, float]]:
-            from model import FREQUENCIES
             rates = []
             for job in self._app.state.jobs:
                 # Convert to hourly: Weekly / 40 approx, or use as-is if per-hour

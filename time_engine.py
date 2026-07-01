@@ -39,7 +39,7 @@ Dependencies
 """
 from __future__ import annotations
 
-from schedule_event import ScheduleEvent, DAYS, to_minutes, from_minutes, fmt_time
+from schedule_event import ScheduleEvent, DAYS, to_minutes, from_minutes
 from config import DAY_START as _DAY_START, DAY_END as _DAY_END
 
 

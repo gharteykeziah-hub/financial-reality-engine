@@ -52,7 +52,6 @@ from schedule_core import (
     _Database,
     Engine,
     Shift,
-    ValidationError,
     _DB_PATH,
     _DAYS,
     _DAY_ALIASES,

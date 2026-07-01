@@ -1,7 +1,6 @@
 """page_data.py — Data Management page (jobs, expenses, balance, import, log)."""
 import tkinter as tk
 import csv
-import os
 from tkinter import filedialog
 
 import theme

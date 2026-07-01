@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import ttk
 
 import theme
-from theme import theme_mgr, darken, F_BODY, F_SMALL, F_H1, F_H2, F_NAV
+from theme import theme_mgr, darken, F_BODY, F_SMALL, F_H1
 
 
 # ── Utility ───────────────────────────────────────────────────────────────────

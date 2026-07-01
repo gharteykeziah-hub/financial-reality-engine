@@ -10,7 +10,7 @@ of competing with Home and Schedule for space in the main nav.
 import tkinter as tk
 
 import theme
-from theme import F_BODY, F_SMALL
+from theme import F_BODY
 from widgets import ScrollFrame, page_title, card
 
 _ITEMS = [
