@@ -1488,15 +1488,21 @@ class TestShiftParser:
 
 
 class TestDateParser:
-    """Tests for date_parser.parse_schedule public API."""
+    """Tests for date_parser.parse_schedule public API.
+
+    Daily mode requires the header "date: YYYY-MM-DD" (case-insensitive).
+    Weekly mode requires "week: YYYY-MM-DD". Anything else falls through to
+    weekly mode with zero shifts when no valid day blocks are found.
+    """
 
     def test_parse_schedule_daily_mode(self):
-        text = "2026-06-15: Job A 09:00-17:00 @15"
+        # The daily-mode header is "date: YYYY-MM-DD", not "YYYY-MM-DD:"
+        text = "date: 2026-06-15\nJob A 09:00-17:00 @15"
         result = date_parser.parse_schedule(text)
         assert result.mode == "daily"
 
     def test_parse_schedule_returns_result_object(self):
-        text = "2026-06-15: Job A 09:00-17:00 @15"
+        text = "date: 2026-06-15\nJob A 09:00-17:00 @15"
         result = date_parser.parse_schedule(text)
         assert hasattr(result, "shifts")
         assert hasattr(result, "errors")
@@ -1505,7 +1511,8 @@ class TestDateParser:
         result = date_parser.parse_schedule("")
         assert len(result.shifts) == 0
 
-    def test_parse_schedule_bad_date_gives_no_shifts(self):
+    def test_parse_schedule_unrecognised_header_gives_no_shifts(self):
+        # No recognised header → weekly mode, no valid day blocks → 0 shifts
         result = date_parser.parse_schedule("not-a-date: Job A 09:00-17:00")
         assert len(result.shifts) == 0
 
