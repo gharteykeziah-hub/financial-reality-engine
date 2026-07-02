@@ -12,7 +12,6 @@ import database as db
 from model import Job, Expense, FREQUENCIES
 import activity_log
 from config import (
-    LOG_FILE,
     SAVINGS_STRONG, SAVINGS_GOOD, SAVINGS_OK,
     EXPENSE_RATIO_RISK,
     HEALTH_SCORE_STRONG, HEALTH_SCORE_GOOD, HEALTH_SCORE_OK,
@@ -22,12 +21,8 @@ from config import (
     RISK_PENALTY_NEGATIVE_SAVINGS, RISK_PENALTY_ZERO_BALANCE,
 )
 
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)s  %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+# Logging is configured once at startup in main.py / app.py.
+# Each module just acquires a named logger — never calls basicConfig.
 logger = logging.getLogger(__name__)
 
 

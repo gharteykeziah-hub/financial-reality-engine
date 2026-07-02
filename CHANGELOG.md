@@ -5,14 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [1.2.0] — 2026-07-02
 
 ### Added
 - `exceptions.py` — single source of truth for `ValidationError`; all UI pages now import from here
 - `CONTRIBUTING.md` — full contributor guide: setup, running tests, project layout, code style, commit convention
-- `CHANGELOG.md` — this file
 - Class and method docstrings across all `page_*.py` files and `financial_state.py`
 - Module docstring for `database.py` documenting all five SQLite tables
+- 8 new test classes covering `FinancialState` CRUD, database settings, `ValidationError`, both parsers, simulation edge cases, `dedup_jobs`/`dedup_expenses`, and `week_engine`
+- `scripts/demo.py` — runnable 60-line demo showing the full value prop with no GUI
+- Type hints added to `simulation.py`, `scenario_engine.py`, and `insight_engine.py`
 
 ### Changed
 - `README.md` rewritten to lead with the product and its value, not the architecture; architecture/Monte Carlo details moved below the fold

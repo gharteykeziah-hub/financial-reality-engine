@@ -4,6 +4,7 @@ insight_engine.py — Explains financial scores in plain English.
 InsightEngine does NOT calculate scores — it reads them from FinancialState.
 All score logic lives in FinancialState.
 """
+from __future__ import annotations
 
 from config import RISK_VERY_STABLE, RISK_STABLE, RISK_MODERATE
 from config import EXPENSE_RATIO_HIGH, EXPENSE_RATIO_WARNING
@@ -29,17 +30,17 @@ class InsightEngine:
 
     # ── Delegating wrappers (so main.py can call insight_engine.risk_score) ───
 
-    def risk_score(self, state) -> int:
+    def risk_score(self, state: object) -> int:
         """Delegates to state.risk_score() — single source of truth."""
-        return state.risk_score()
+        return state.risk_score()  # type: ignore[union-attr]
 
-    def financial_health_score(self, state) -> int:
+    def financial_health_score(self, state: object) -> int:
         """Delegates to state.financial_health_score() — single source of truth."""
-        return state.financial_health_score()
+        return state.financial_health_score()  # type: ignore[union-attr]
 
     # ── Insights ──────────────────────────────────────────────────────────────
 
-    def generate_insights(self, state, simulation_results=None) -> list[str]:
+    def generate_insights(self, state: object, simulation_results: dict | None = None) -> list[str]:
         """
         Returns a list of plain-English insights about the user's finances.
         Reads all data from state — does not recalculate anything independently.

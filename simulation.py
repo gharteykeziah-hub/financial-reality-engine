@@ -37,11 +37,11 @@ logger = logging.getLogger(__name__)
 # picture of the balance.
 # ------------------------------------------------------------
 def simulate_whatif(
-    state,
+    state: "FinancialState",
     description: str,
     dollar_change: float,
     weeks: int,
-) -> dict:
+) -> dict[str, object]:
     """
     Simulates a user-defined event and its effect over N weeks.
 
@@ -137,7 +137,7 @@ _RANDOM_EVENTS = [
 ]
 
 
-def _roll_random_events() -> float:
+def _roll_random_events() -> float:  # noqa: F811
     """
     Rolls the dice on every background event for one week.
 
@@ -184,7 +184,7 @@ def _roll_random_events_vectorized(n: int, weeks: int) -> np.ndarray:
     return np.sum(hits * magnitudes, axis=2)  # (n, weeks) -> sum over events
 
 
-def run_monte_carlo(state, weeks: int, n: int = MONTE_CARLO_RUNS) -> dict:
+def run_monte_carlo(state: "FinancialState", weeks: int, n: int = MONTE_CARLO_RUNS) -> dict[str, object]:
     """
     Runs N simulations of the user's financial life over N weeks.
     Each simulation has different random events each week.

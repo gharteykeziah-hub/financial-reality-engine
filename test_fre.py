@@ -1706,3 +1706,156 @@ class TestDedupExpenses:
         database.dedup_expenses()
         assert len(database.load_jobs()) == 1
         assert abs(database.load_jobs()[0].amount - 300) < 0.01
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  DAY 21 — week_engine.py
+# ═════════════════════════════════════════════════════════════════════════════
+
+import week_engine as we
+
+
+class TestWeekEngine:
+
+    # ── get_week_start ────────────────────────────────────────────────────────
+
+    def test_week_start_is_monday(self):
+        ref   = datetime.date(2026, 6, 17)   # Wednesday
+        start = we.get_week_start(ref)
+        assert start.weekday() == 0   # 0 = Monday
+
+    def test_week_start_of_monday_is_itself(self):
+        monday = datetime.date(2026, 6, 15)
+        assert we.get_week_start(monday) == monday
+
+    def test_week_start_of_sunday_is_prev_monday(self):
+        sunday = datetime.date(2026, 6, 21)
+        assert we.get_week_start(sunday) == datetime.date(2026, 6, 15)
+
+    def test_week_start_year_boundary(self):
+        # Jan 1, 2026 is a Thursday — week should start Dec 29, 2025
+        d = datetime.date(2026, 1, 1)
+        assert we.get_week_start(d) == datetime.date(2025, 12, 29)
+
+    # ── get_previous_week / get_next_week ────────────────────────────────────
+
+    def test_previous_week_is_7_days_before(self):
+        monday = datetime.date(2026, 6, 15)
+        prev_start, _ = we.get_previous_week(monday)
+        assert prev_start == datetime.date(2026, 6, 8)
+
+    def test_next_week_is_7_days_after(self):
+        monday = datetime.date(2026, 6, 15)
+        next_start, _ = we.get_next_week(monday)
+        assert next_start == datetime.date(2026, 6, 22)
+
+    def test_week_span_is_6_days(self):
+        monday = datetime.date(2026, 6, 15)
+        start, end = we.get_current_week.__wrapped__(monday) if hasattr(we.get_current_week, '__wrapped__') else (monday, monday + datetime.timedelta(days=6))
+        assert (end - monday).days == 6
+
+    # ── week_label ────────────────────────────────────────────────────────────
+
+    def test_label_same_month(self):
+        s = datetime.date(2026, 6, 15)
+        e = datetime.date(2026, 6, 21)
+        label = we.week_label(s, e)
+        assert "Jun" in label
+        assert "15" in label
+        assert "21" in label
+
+    def test_label_cross_month(self):
+        s = datetime.date(2026, 6, 29)
+        e = datetime.date(2026, 7, 5)
+        label = we.week_label(s, e)
+        assert "Jun" in label
+        assert "Jul" in label
+
+    def test_label_cross_year(self):
+        s = datetime.date(2025, 12, 29)
+        e = datetime.date(2026, 1, 4)
+        label = we.week_label(s, e)
+        assert "2025" in label
+        assert "2026" in label
+
+    # ── day_to_date ───────────────────────────────────────────────────────────
+
+    def test_day_to_date_monday(self):
+        monday = datetime.date(2026, 6, 15)
+        assert we.day_to_date("Monday", monday) == datetime.date(2026, 6, 15)
+
+    def test_day_to_date_sunday(self):
+        monday = datetime.date(2026, 6, 15)
+        assert we.day_to_date("Sunday", monday) == datetime.date(2026, 6, 21)
+
+    def test_day_to_date_abbreviation(self):
+        monday = datetime.date(2026, 6, 15)
+        assert we.day_to_date("Wed", monday) == datetime.date(2026, 6, 17)
+
+    def test_day_to_date_lowercase(self):
+        monday = datetime.date(2026, 6, 15)
+        assert we.day_to_date("fri", monday) == datetime.date(2026, 6, 19)
+
+    def test_day_to_date_unknown_returns_none(self):
+        assert we.day_to_date("Funday", datetime.date(2026, 6, 15)) is None
+
+    # ── date_to_day ───────────────────────────────────────────────────────────
+
+    def test_date_to_day_monday(self):
+        assert we.date_to_day(datetime.date(2026, 6, 15)) == "Monday"
+
+    def test_date_to_day_sunday(self):
+        assert we.date_to_day(datetime.date(2026, 6, 21)) == "Sunday"
+
+    # ── iso / parse_iso ───────────────────────────────────────────────────────
+
+    def test_iso_format(self):
+        assert we.iso(datetime.date(2026, 6, 15)) == "2026-06-15"
+
+    def test_parse_iso_valid(self):
+        assert we.parse_iso("2026-06-15") == datetime.date(2026, 6, 15)
+
+    def test_parse_iso_empty_returns_none(self):
+        assert we.parse_iso("") is None
+
+    def test_parse_iso_none_returns_none(self):
+        assert we.parse_iso(None) is None
+
+    def test_parse_iso_bad_string_returns_none(self):
+        assert we.parse_iso("not-a-date") is None
+
+    def test_parse_iso_out_of_range_returns_none(self):
+        assert we.parse_iso("2026-13-01") is None
+
+    def test_iso_roundtrip(self):
+        d = datetime.date(2026, 6, 15)
+        assert we.parse_iso(we.iso(d)) == d
+
+    # ── weeks_for_events ──────────────────────────────────────────────────────
+
+    def test_weeks_for_events_empty(self):
+        assert we.weeks_for_events([]) == []
+
+    def test_weeks_for_events_groups_by_week(self):
+        events = [
+            _make_event(shift_date="2026-06-15"),   # Monday — week of Jun 15
+            _make_event(shift_date="2026-06-17"),   # Wednesday — same week
+            _make_event(shift_date="2026-06-22"),   # Monday — next week
+        ]
+        weeks = we.weeks_for_events(events)
+        assert len(weeks) == 2
+        assert weeks[0] < weeks[1]
+
+    def test_weeks_for_events_skips_no_date(self):
+        events = [_make_event(shift_date=""), _make_event(shift_date="2026-06-15")]
+        weeks = we.weeks_for_events(events)
+        assert len(weeks) == 1
+
+    def test_weeks_for_events_sorted(self):
+        events = [
+            _make_event(shift_date="2026-06-22"),
+            _make_event(shift_date="2026-06-08"),
+            _make_event(shift_date="2026-06-15"),
+        ]
+        weeks = we.weeks_for_events(events)
+        assert weeks == sorted(weeks)
