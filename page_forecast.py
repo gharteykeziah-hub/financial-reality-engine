@@ -12,7 +12,9 @@ from config import PROJECTION_WEEKS
 
 
 class ForecastingPage(tk.Frame):
+    """Forecasting page: balance projections, scenario comparison, what-if, and Monte Carlo."""
     def __init__(self, parent, app):
+        """Set up tab bar and body frame; activate the Projection tab."""
         super().__init__(parent, bg=theme.BG)
         self._app = app
 
@@ -33,6 +35,7 @@ class ForecastingPage(tk.Frame):
         tb.activate("projection")
 
     def _render(self, key):
+        """Destroy and rebuild the body frame for the selected tab key."""
         for w in self._body.winfo_children():
             w.destroy()
         {"projection": self._projection,
@@ -41,6 +44,7 @@ class ForecastingPage(tk.Frame):
 
     # ── Projection ────────────────────────────────────────────────────────
     def _projection(self):
+        """Render the Projection tab — balance at 4, 8, 12, 26, 52-week horizons."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -90,6 +94,7 @@ class ForecastingPage(tk.Frame):
 
     # ── Scenarios ─────────────────────────────────────────────────────────
     def _scenarios(self):
+        """Render the Scenarios tab — side-by-side comparison of income changes."""
         state          = self._app.state
         scenario_engine = self._app.scenario_engine
         sf    = ScrollFrame(self._body)
@@ -173,6 +178,7 @@ class ForecastingPage(tk.Frame):
 
     # ── Simulation ────────────────────────────────────────────────────────
     def _simulation(self):
+        """Render the Simulation tab — what-if and Monte Carlo tools."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)

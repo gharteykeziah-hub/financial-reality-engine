@@ -8,7 +8,9 @@ from widgets import (ScrollFrame, TabBar, page_title, card, kv_row,
 
 
 class GoalsPage(tk.Frame):
+    """Goals page: weeks-to-goal calculator, savings progress bar, and emergency fund tracker."""
     def __init__(self, parent, app):
+        """Set up tab bar and body frame; activate the Weeks to Goal tab."""
         super().__init__(parent, bg=theme.BG)
         self._app = app
 
@@ -28,6 +30,7 @@ class GoalsPage(tk.Frame):
         tb.activate("weeks")
 
     def _render(self, key):
+        """Destroy and rebuild the body frame for the selected tab key."""
         for w in self._body.winfo_children():
             w.destroy()
         {"weeks":     self._weeks_to_goal,
@@ -36,6 +39,7 @@ class GoalsPage(tk.Frame):
 
     # ── Weeks to Goal ─────────────────────────────────────────────────────
     def _weeks_to_goal(self):
+        """Render the Weeks to Goal tab — enter a target amount, see how long it takes."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -81,6 +85,7 @@ class GoalsPage(tk.Frame):
 
     # ── Goal Progress ─────────────────────────────────────────────────────
     def _goal_progress(self):
+        """Render the Goal Progress tab — visual progress bar toward a saved goal."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -135,6 +140,7 @@ class GoalsPage(tk.Frame):
 
     # ── Emergency Fund ────────────────────────────────────────────────────
     def _emergency_fund(self):
+        """Render the Emergency Fund tab — check if current balance covers N months."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)

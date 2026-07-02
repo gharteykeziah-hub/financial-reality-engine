@@ -12,7 +12,9 @@ from model import Job, Expense, FREQUENCIES
 
 
 class DataManagementPage(tk.Frame):
+    """Data management page: add/delete jobs and expenses, set balance, import CSV, view log."""
     def __init__(self, parent, app):
+        """Set up tab bar and body frame; activate the Jobs tab."""
         super().__init__(parent, bg=theme.BG)
         self._app = app
 
@@ -38,6 +40,7 @@ class DataManagementPage(tk.Frame):
         self._tab_bar.activate("my_jobs")
 
     def _render_tab(self, key):
+        """Destroy and rebuild the body frame for the selected tab key."""
         for w in self._body.winfo_children():
             w.destroy()
         {
@@ -54,6 +57,7 @@ class DataManagementPage(tk.Frame):
 
     # ── My Jobs ──────────────────────────────────────────────────────────
     def _my_jobs(self):
+        """Render the My Jobs tab — list of income sources with delete controls."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -122,6 +126,7 @@ class DataManagementPage(tk.Frame):
 
     # ── My Expenses ──────────────────────────────────────────────────────
     def _my_expenses(self):
+        """Render the My Expenses tab — list of expenses with delete controls."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -196,6 +201,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Add Job ──────────────────────────────────────────────────────────
     def _add_job(self):
+        """Render the Add Income tab — form to create a new income source."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -253,6 +259,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Add Expense ──────────────────────────────────────────────────────
     def _add_expense(self):
+        """Render the Add Expense tab — form to create a new expense."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -314,6 +321,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Delete Job ───────────────────────────────────────────────────────
     def _delete_job(self):
+        """Remove the job with the given name from state and database."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -364,6 +372,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Delete Expense ────────────────────────────────────────────────────
     def _delete_expense(self):
+        """Remove the expense with the given name from state and database."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -414,6 +423,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Set Balance ───────────────────────────────────────────────────────
     def _set_balance(self):
+        """Render the Set Balance tab — input field to update current balance."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -445,6 +455,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Import CSV ────────────────────────────────────────────────────────
     def _import_csv(self):
+        """Render the Import CSV tab — file picker for bulk data import."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -529,6 +540,7 @@ class DataManagementPage(tk.Frame):
 
     # ── Activity Log ──────────────────────────────────────────────────────
     def _activity_log(self):
+        """Render the Activity Log tab — recent changes with timestamps."""
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
         inner = sf.inner
