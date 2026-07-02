@@ -1,33 +1,63 @@
 # Changelog
 
-## v1.3
-- Centralised `canon_name()` into `utils.py` — removed four duplicate implementations across `database.py`, `schedule_analytics.py`, `app.py`, and `page_schedule.py`
-- Fixed `ScenarioEngine` projection bug: `extra_weekly` was applied once per job instead of once to the total
-- Extracted schedule-to-financial sync from `App.__init__` into `schedule_service.py` (testable without Tk)
-- Added `shift_impact()` and `job_efficiency_report()` to `schedule_analytics.py` — the decision engine
-- Wired `schedule_analytics` into Analytics → Income and Trends tabs (previously disconnected)
-- Enriched CSV and PDF exports with full schedule summary, per-job breakdown, and top earning days
-- Expanded test suite to 140+ tests: added `TestCanonName`, `TestScenarioEngineBugRegression`, `TestScheduleAnalytics`, `TestShiftImpact`, `TestJobEfficiency`, `TestStress`
+All notable changes to ShiftIQ are recorded here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## v1.2
-- Schedule planner page: weekly calendar, shift entry with conflict detection, free-block analysis
-- Opportunity cost calculation for free time blocks
-- Week navigation engine
+---
 
-## v1.1
-- Frequency support for all income and expense entries (Daily / Weekly / Biweekly / Monthly)
-- Automatic schema migration from old `hourly_rate + hours_per_week` model
-- Balance projection chart
-- PDF export (reportlab)
-- Database backup
-- Monte Carlo histogram
-- Historical trend tracking (daily snapshots)
+## [Unreleased]
 
-## v1.0
-- Dashboard with live balance, income, expenses, net flow, insights
-- Data management for jobs and expenses
-- Financial Health Score and Risk Score
-- Goals tracker with weeks-to-goal calculator
-- Forecasting: scenario comparison, What-If simulator, Monte Carlo simulation
-- Activity log
-- CSV export
+### Added
+- `exceptions.py` — single source of truth for `ValidationError`; all UI pages now import from here
+- `CONTRIBUTING.md` — full contributor guide: setup, running tests, project layout, code style, commit convention
+- `CHANGELOG.md` — this file
+- Class and method docstrings across all `page_*.py` files and `financial_state.py`
+- Module docstring for `database.py` documenting all five SQLite tables
+
+### Changed
+- `README.md` rewritten to lead with the product and its value, not the architecture; architecture/Monte Carlo details moved below the fold
+- All `raise ValueError` in UI pages replaced with `raise ValidationError`; catch sites updated to `except (ValueError, ValidationError)`
+- Unused imports removed from `app.py`, `page_data.py`, `pdf_report.py`, `page_more.py`, `time_engine.py`, `schedule_event.py`, `financial_state.py`
+- `page_schedule.py`: long inline word lists extracted to named variables to satisfy 120-char line limit
+
+---
+
+## [0.4.0] — 2026-07-02
+
+### Added
+- Function docstrings to `financial_state.py` (all public methods)
+
+### Style
+- Linter pass across entire codebase; all warnings resolved
+
+### Removed
+- Dead code: unused imports, commented-out blocks, stale variables
+
+---
+
+## [0.3.0] — 2026-06-30
+
+### Changed
+- All magic numbers extracted to `config.py`; no inline constants remain
+- Free-time calculation consolidated into `time_engine.py`
+- Shift planner UI migrated to `schedule_core`
+
+---
+
+## [0.2.0] — 2026-06-29
+
+### Added
+- Optimization engine (0/1 knapsack shift selection)
+- FastAPI web service (`api.py`); `render.yaml` for one-command deployment
+- `IncomeMode` moved to `schedule_core`; `shift_engine` deprecated
+
+---
+
+## [0.1.0] — 2026-06-18
+
+### Added
+- Initial release: Financial Reality Engine with tkinter desktop app
+- Monte Carlo simulation (NumPy-vectorized, 5× speedup over pure Python)
+- SQLite persistence via `database.py`
+- Core data models (`Job`, `Expense`) with frequency-aware weekly conversion
+- 166 pytest tests covering financial state, optimizer, simulation, and schedule logic
