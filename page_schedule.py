@@ -1384,11 +1384,19 @@ class SchedulePage(tk.Frame):
                     t = name.lower()
                     if any(w in t for w in ["class", "lecture", "lab", "seminar", "course", "101", "201", "301"]):
                         return "Class"
-                    if any(w in t for w in ["study", "homework", "hw", "review", "tutoring", "session", "calculus", "algebra", "biology", "chemistry", "physics", "english", "history", "writing"]):
+                    study_words = ["study", "homework", "hw", "review", "tutoring",
+                                   "session", "calculus", "algebra", "biology",
+                                   "chemistry", "physics", "english", "history", "writing"]
+                    if any(w in t for w in study_words):
                         return "Study"
-                    if any(w in t for w in ["meeting", "club", "group", "committee", "board", "org", "organization"]):
+                    meeting_words = ["meeting", "club", "group", "committee",
+                                     "board", "org", "organization"]
+                    if any(w in t for w in meeting_words):
                         return "Meeting"
-                    if any(w in t for w in ["gym", "workout", "personal", "church", "appointment", "doctor", "dentist", "hair", "lunch", "dinner", "break"]):
+                    personal_words = ["gym", "workout", "personal", "church",
+                                      "appointment", "doctor", "dentist", "hair",
+                                      "lunch", "dinner", "break"]
+                    if any(w in t for w in personal_words):
                         return "Personal"
                     return "Personal"
 
