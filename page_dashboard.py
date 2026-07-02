@@ -7,7 +7,9 @@ from widgets import ScrollFrame, page_title, card, kv_row
 
 
 class DashboardPage(tk.Frame):
+    """One-screen financial snapshot: balance, net flow, risk/health scores, and top insights."""
     def __init__(self, parent, app):
+        """Build and render the dashboard using the app's current state."""
         super().__init__(parent, bg=theme.BG)
         self._app = app
 

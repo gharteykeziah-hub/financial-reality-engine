@@ -10,7 +10,9 @@ from widgets import ScrollFrame, TabBar, page_title, card, kv_row
 
 
 class AnalyticsPage(tk.Frame):
+    """Five-tab analytics view: Savings, Health, Income, Expense categories, and Trends."""
     def __init__(self, parent, app):
+        """Set up tab bar and body frame; activate the Savings tab."""
         super().__init__(parent, bg=theme.BG)
         self._app = app
 
@@ -32,6 +34,7 @@ class AnalyticsPage(tk.Frame):
         tb.activate("savings")
 
     def _render(self, key):
+        """Destroy and rebuild the body frame for the selected tab key."""
         for w in self._body.winfo_children():
             w.destroy()
         {"savings":    self._savings,
@@ -42,6 +45,7 @@ class AnalyticsPage(tk.Frame):
 
     # ── Savings ───────────────────────────────────────────────────────────
     def _savings(self):
+        """Render the Savings Rate tab — big-number display and flow breakdown."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -84,6 +88,7 @@ class AnalyticsPage(tk.Frame):
 
     # ── Health ────────────────────────────────────────────────────────────
     def _health(self):
+        """Render the Health tab — score cards, factor breakdown, and all insights."""
         state          = self._app.state
         insight_engine = self._app.insight_engine
         sf    = ScrollFrame(self._body)
@@ -186,6 +191,7 @@ class AnalyticsPage(tk.Frame):
 
     # ── Income ────────────────────────────────────────────────────────────
     def _income(self):
+        """Render the Income tab — per-job breakdown and efficiency ranking."""
         state  = self._app.state
         sf     = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -306,6 +312,7 @@ class AnalyticsPage(tk.Frame):
 
     # ── Categories ────────────────────────────────────────────────────────
     def _categories(self):
+        """Render the Expense Categories tab — weekly spend by category."""
         state = self._app.state
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
@@ -339,6 +346,7 @@ class AnalyticsPage(tk.Frame):
 
     # ── Trends ────────────────────────────────────────────────────────────
     def _trends(self):
+        """Render the Trends tab — historical balance chart from snapshot data."""
         sf    = ScrollFrame(self._body)
         sf.pack(fill="both", expand=True)
         inner = sf.inner
